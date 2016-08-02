@@ -158,8 +158,10 @@ var advanceFrame = function(direction) {
   clearTimeout(imageTimer)
   if (remote.getGlobal('sharedObj').outlineData[currentNode].image) {
     currentImage = 0
-    imageInterval = (remote.getGlobal('sharedObj').outlineData[currentNode].description.length*72+1300)/remote.getGlobal('sharedObj').outlineData[currentNode].image.length
-    imageTimer = setTimeout(advanceImage, imageInterval)
+    if (playbackMode) {
+      imageInterval = (remote.getGlobal('sharedObj').outlineData[currentNode].description.length*72+1300)/remote.getGlobal('sharedObj').outlineData[currentNode].image.length
+      imageTimer = setTimeout(advanceImage, imageInterval)
+    }
     $("#posterimage").attr("src","./"+remote.getGlobal('sharedObj').outlineData[currentNode].image[0]);
     $('#posterimage').show()
     console.log('has images!!!')
@@ -202,6 +204,12 @@ var advanceImage = function() {
   imageTimer = setTimeout(advanceImage, imageInterval)
 }
 
+var goToImage = function(direction) {
+  clearTimeout(imageTimer)
+  currentImage = Math.max(currentImage + direction, 0)
+  var imageCount = remote.getGlobal('sharedObj').outlineData[currentNode].image.length
+  $("#posterimage").attr("src","./"+remote.getGlobal('sharedObj').outlineData[currentNode].image[currentImage % imageCount]);
+}
 
 window.onkeydown = function(key){
    console.log(key);
@@ -259,6 +267,14 @@ window.onkeydown = function(key){
       break;
     case 51:
       playbackType = 2
+      break;
+    // ENTER KEY
+    case 13: 
+      goToImage(1)
+      break;
+    // ' KEY
+    case 222:
+      goToImage(-1)
       break;
   //   case 52:
   //   case 53:
