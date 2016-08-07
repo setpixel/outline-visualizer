@@ -1,3 +1,15 @@
+/* TODO:
+
+Ignore blank lines in the outline
+parse images intellegently
+Parse times intelligently
+Merge together descriptions
+
+
+
+*/
+
+
 const electron = require('electron')
 // Module to control application life.
 const app = electron.app
@@ -67,34 +79,63 @@ function loadOutline() {
     var sceneCount = 0
 
     for (var i = 0; i < lines.length; i++) {
-      if (lines[i].substr(0,2) == '# ' ) {
+      if (lines[i].substr(0,1) == '#' ) {
         if (node !== 0) { outlineData.push(node) }
-        node = {type:'section', text: lines[i].substr(2)}
+        node = {type:'section', text: lines[i].substr(1).trim()}
         nodeCounter = 0
+      } else if (lines[i].trim().substr(0,2) == '//') {
+        // comment do nothing
       } else if (lines[i].substr(0,2) == '  ' ) {
-        nodeCounter++
-        switch(nodeCounter) {
-          case 1:
-            node.description = lines[i].substr(2)
-            break;
-          case 2:
-            node.timing = lines[i].substr(2)
-            break;
-          case 3:
-            node.image = [lines[i].substr(2)]
-            break;
-          case 4:
-            node.image.push(lines[i].substr(2))
-            break;
-          case 5:
-            node.image.push(lines[i].substr(2))
-            break;
+        let lineContent = lines[i].substr(2).trim()
+        // first is there anything there? (no blank)
+        if (lineContent !== ''){
+          // is it a single word number?
+          if (!isNaN(+lineContent)) {
+            node.timing = +lineContent
+          } else if (lineContent.match(/\.(jpeg|jpg|gif|png)$/) != null) {
+            // is it an image?
+            node.image.push(lineContent)
+          } else if (lineContent.match(/^(EXT. |INT. )/) != null) {
+            // is it an image?
+            node.slugline = lineContent
+          } else {
+            // else add it to a description string
+            if (node.description) {
+              node.description += "\n" + lineContent
+            } else {
+              node.description = lineContent
+            }
+          }
+
         }
+
+
+
+        // nodeCounter++
+        // switch(nodeCounter) {
+        //   case 1:
+        //     node.description = lines[i].substr(2)
+        //     break;
+        //   case 2:
+        //     node.timing = lines[i].substr(2)
+        //     break;
+        //   case 3:
+        //     node.image = [lines[i].substr(2)]
+        //     break;
+        //   case 4:
+        //     node.image.push(lines[i].substr(2))
+        //     break;
+        //   case 5:
+        //     node.image.push(lines[i].substr(2))
+        //     break;
+        // }
       } else {
-        nodeCounter = 0
-        sceneCount++
-        if (node !== 0) { outlineData.push(node) }
-        node = {type:'scene', text: lines[i]}
+        if (lines[i].trim() !== '') {
+          nodeCounter = 0
+          sceneCount++
+          if (node !== 0) { outlineData.push(node) }
+          node = {type:'scene', text: lines[i], image: []}
+        }
       }
     }
     

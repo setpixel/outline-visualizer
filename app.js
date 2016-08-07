@@ -97,6 +97,16 @@ var renderTimeline = function() {
     goToFrame(e.target.dataset.id)
   })
 
+  $('.scene').mouseenter(function(e) {
+    if (e.buttons == 1) {
+      playbackMode = false;
+      clearTimeout(frameTimer)
+      goToFrame(e.target.dataset.id)
+    }
+  })
+
+  advanceFrame(0)
+
 }
 
 var goToFrame = function(index) {
@@ -156,7 +166,7 @@ var advanceFrame = function(direction) {
 
 
   clearTimeout(imageTimer)
-  if (remote.getGlobal('sharedObj').outlineData[currentNode].image) {
+  if (remote.getGlobal('sharedObj').outlineData[currentNode].image.length > 0) {
     currentImage = 0
     if (playbackMode) {
       imageInterval = (remote.getGlobal('sharedObj').outlineData[currentNode].description.length*72+1300)/remote.getGlobal('sharedObj').outlineData[currentNode].image.length
@@ -176,7 +186,7 @@ var advanceFrame = function(direction) {
     $('#caption').text('')
   }
   if (remote.getGlobal('sharedObj').outlineData[currentNode].description) { 
-    $('#description').text(remote.getGlobal('sharedObj').outlineData[currentNode].description) 
+    $('#description').html(remote.getGlobal('sharedObj').outlineData[currentNode].description) 
   } else {
     $('#description').text('')
   }
