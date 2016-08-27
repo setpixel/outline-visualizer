@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Outline Display</title>
+    <link rel="stylesheet" href="./css/main.css">
+
+ 
+
+  </head>
+  <body>
+    <div class="poster-container">
+    <img id="posterimage" src="">
+    </div>
+   <div id="float-bottom">
+      <p id="scenemarker"></p>
+      <p id="slugline"></p>
+      <h1 id="caption"></h1>
+      <p id="description"></p>
+    </div>
+
+    <div id="playhead">
+      <div class="holder"><div class="status"></div></div>
+    </div>
+
+    <div id="timeline">
+    </div>
+  </body>
+
+  <script>
+    // You can also require other files to run in this process
+    // require('./renderer.js')
+
+    window.nodeRequire = require;
+    delete window.require;
+    delete window.exports;
+    delete window.module;
+  </script>
+  
+  <script type="text/javascript" src="../node_modules/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="./js/app.js"></script>
+  <script>
+    nodeRequire('./js/outlineWindow.js')
+  </script>
+</html>

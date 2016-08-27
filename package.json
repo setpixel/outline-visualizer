@@ -1,10 +1,12 @@
 {
-  "name": "electron-quick-start",
-  "version": "1.0.0",
-  "description": "A minimal Electron application",
-  "main": "main.js",
+  "name": "outline-visualizer",
+  "productName": "Outline Visualizer",
+  "version": "0.0.1",
+  "description": "A simple way to view a screenplay/story outline text file.",
+  "main": "src/js/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "buildosx": "electron-packager . --out=dist --overwrite --platform=darwin --arch=x64 --icon=src/img/outliner-display-icon.icns"
   },
   "repository": {
     "type": "git",
@@ -16,17 +18,17 @@
     "start",
     "tutorial"
   ],
-  "author": "GitHub",
+  "author": "Charles Forman",
   "license": "CC0-1.0",
   "bugs": {
     "url": "https://github.com/electron/electron-quick-start/issues"
   },
-  "homepage": "https://github.com/electron/electron-quick-start#readme",
+  "homepage": "https://setpixel.com",
   "devDependencies": {
-    "electron-packager": "^7.3.0",
     "electron-prebuilt": "^1.2.0"
   },
   "dependencies": {
-    "jquery": "^3.1.0"
+    "jquery": "^3.1.0",
+    "pdfkit": "^0.7.2"
   }
 }
