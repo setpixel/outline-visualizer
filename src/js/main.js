@@ -28,9 +28,12 @@ const {dialog} = require('electron')
 const fs = require('fs')
 
 const prefModule = require('./prefs')
-const printModule = require('./print')
+const printModule = require('./posterOutput')
+const worksheetPrint = require('./worksheetOutput')
 
 let mainWindow
+let printWindow
+
 let statWatcher 
 
 // load prefs file.
@@ -43,6 +46,16 @@ function createWindow () {
     mainWindow = new BrowserWindow({width: 1300, height: 1000, show: false})
     mainWindow.loadURL(`file://${__dirname}/../index.html`)
   }
+
+  // printWindow = new BrowserWindow({width: 100, height: 100, show: true, webPreferences: {nodeIntegration: false}})
+  // printWindow.loadURL(`file://${__dirname}/../print.html`)
+//  printWindow.loadURL(`https://mozilla.github.io/pdf.js/web/viewer.html`)
+
+  // printWindow.webContents.on('did-finish-load', function() {
+  //   setTimeout(function() {printWindow.webContents.print()}, 3000)
+
+  // });
+
 
   // Open the DevTools.
   //mainWindow.webContents.openDevTools()
@@ -114,6 +127,8 @@ function loadOutline(create) {
   outlineData = []
   fs.readFile(prefs.outlineFile, 'utf-8', (err,data)=>{
     
+    console.log(`loading outline: ${prefs.outlineFile}`)
+
     if (err) {
       console.log("ERROR: Can't open file.")
       openOutline()
@@ -177,9 +192,7 @@ function loadOutline(create) {
     documentPath.pop()
     documentPath = documentPath.join('/')
 
-    console.log(outlineData)
-
-    global.sharedObj = {outlineData: outlineData, sceneCount: sceneCount, documentPath: documentPath}
+    global.sharedObj = {outlineData: outlineData, sceneCount: sceneCount, documentPath: documentPath, currentNode: 1}
 
     if (create) {
       statWatcher = fs.watchFile(prefs.outlineFile, {persistent: false}, (e) => {
@@ -208,7 +221,7 @@ ipcMain.on('openOutline', ()=> {
 })
 
 ipcMain.on('exportFountain', (event, arg) => {
-  dialog.showSaveDialog({title:"Export Fountain Screenplay", defaultPath: prefs.outlineFile, buttonLabel: "Export", filters:[{name: 'Fountain', extensions: ['fountain']}]}, (filename)=>{
+  dialog.showSaveDialog({title:"Export Fountain Screenplay", defaultPath: global.sharedObj.documentPath + '/screenplay.fountain', buttonLabel: "Export", filters:[{name: 'Fountain', extensions: ['fountain']}]}, (filename)=>{
     if (filename) {
       console.log('EXPORTING: ' + filename)
 
@@ -264,7 +277,7 @@ ipcMain.on('exportFountain', (event, arg) => {
 })
 
 ipcMain.on('exportOutliner', (event, arg) => {
-  dialog.showSaveDialog({title:"Export Outliner", defaultPath: prefs.outlineFile, buttonLabel: "Export", filters:[{name: 'Outliner', extensions: ['outliner']}]}, (filename)=>{
+  dialog.showSaveDialog({title:"Export Outliner", defaultPath: global.sharedObj.documentPath + '/exportedoutliner.outliner', buttonLabel: "Export", filters:[{name: 'Outliner', extensions: ['outliner']}]}, (filename)=>{
     if (filename) {
       console.log('EXPORTING: ' + filename)
       
@@ -424,41 +437,7 @@ ipcMain.on('exportOutliner', (event, arg) => {
 })
 
 ipcMain.on('exportCSV', (event, arg) => {
-  dialog.showSaveDialog({title:"Export CSV file", defaultPath: prefs.outlineFile, buttonLabel: "Export", filters:[{name: 'CSV', extensions: ['csv']}]}, (filename)=>{
-    if (filename) {
-      console.log('EXPORTING: ' + filename)
-      let outlineData = global.sharedObj.outlineData
-      let sceneNumber = 0
-      let currentSection = ''
-      let csvText = 'SECTION,#,SCENE,TIMING,PAGES\n'
-      for (var i = 0; i < outlineData.length; i++) {
-        if (outlineData[i].type == 'section') {
-          currentSection = outlineData[i].text
-        } else if (outlineData[i].type == 'scene') {
-          sceneNumber++
-          csvText += currentSection + ','
-          csvText += sceneNumber + ','
-          csvText += '"' + outlineData[i].text + '",'
-          if (outlineData[i].timing) {
-            csvText += outlineData[i].timing + ','
-            csvText += (outlineData[i].timing/60).toFixed(2)
-          } else {
-            csvText += ','
-          }
-          csvText += '\n'
-        }          
-      }
-      var stream = fs.createWriteStream(filename)
-      stream.once('open', function(fd) {
-        stream.write(csvText)
-        stream.end()
-      })
-    }
-  })
-})
-
-ipcMain.on('exportCSV', (event, arg) => {
-  dialog.showSaveDialog({title:"Export CSV file", defaultPath: prefs.outlineFile, buttonLabel: "Export", filters:[{name: 'CSV', extensions: ['csv']}]}, (filename)=>{
+  dialog.showSaveDialog({title:"Export CSV file", defaultPath: global.sharedObj.documentPath + '/scenelist.csv', buttonLabel: "Export", filters:[{name: 'CSV', extensions: ['csv']}]}, (filename)=>{
     if (filename) {
       console.log('EXPORTING: ' + filename)
       let outlineData = global.sharedObj.outlineData
@@ -492,6 +471,138 @@ ipcMain.on('exportCSV', (event, arg) => {
 })
 
 ipcMain.on('exportPoster', (event, arg) => {
+  dialog.showSaveDialog({title:"Export Poster", defaultPath: global.sharedObj.documentPath + '/poster.pdf', buttonLabel: "Export", filters:[{name: 'PDF', extensions: ['pdf']}]}, (filename)=>{
+    if (filename) {
+      let outlineData = global.sharedObj.outlineData
+      printModule.printTest(outlineData, global.sharedObj.documentPath, filename)
+    }
+  })
+})
+
+ipcMain.on('importWorksheets', (event, arg) => {
+  mainWindow.webContents.send('importWorksheets')
+})
+
+ipcMain.on('printWorksheet', (event, arg) => {
+  worksheetPrint.printTest(outlineData, global.sharedObj.currentNode)
+})
+
+ipcMain.on('exportTreatment', (event, arg) => {
+  dialog.showSaveDialog({title:"Export Treatment", defaultPath: global.sharedObj.documentPath + '/treatment.txt', buttonLabel: "Export", filters:[{name: 'Text', extensions: ['txt']}]}, (filename)=>{
+    if (filename) {
+      console.log('EXPORTING: ' + filename)
+
+      let outlineData = global.sharedObj.outlineData
+
+      let scriptText = ''
+
+      headerText = 'EXPLORERS\n'
+      headerText += 'by Charles Forman\n\n'
+
+      let sceneNumber = 0
+      let currentSection
+
+      for (var i = 0; i < outlineData.length; i++) {
+        if (outlineData[i].type == 'section') {
+          currentSection = outlineData[i].text
+          scriptText += '-=-=-=-=-=-=-=-=-=-=-=-\n'
+          scriptText += '- ' + outlineData[i].text + '\n'
+          scriptText += '-=-=-=-=-=-=-=-=-=-=-=-\n\n'
+        } else if (outlineData[i].type == 'scene') {
+          sceneNumber++
+
+          scriptText += '' + sceneNumber + '.\n\n'
+
+          if (outlineData[i].description) {
+            scriptText += outlineData[i].description + '\n\n'
+          } else {
+            scriptText += outlineData[i].text + '\n\n'
+          }
+        }
+      }
+
+      scriptText += '-=-=-=-=-=-=-=-=-=-=-=-\n'
+      scriptText += '- The End\n'
+      scriptText += '-=-=-=-=-=-=-=-=-=-=-=-'
+
+      let wordCountText = scriptText.split(' ').length + ' words / ' + Math.floor(scriptText.split(' ').length/200) + ' minute read\n\n'
+
+      var stream = fs.createWriteStream(filename)
+      stream.once('open', function(fd) {
+        stream.write(headerText + wordCountText + scriptText)
+        stream.end()
+      })
+
+    }
+  })
+})
+
+ipcMain.on('saveOutline', (event, arg) => {
+  console.log("SHOULD BE SAVING OUTLINE NOW!")
+  console.log(prefs)
+
   let outlineData = global.sharedObj.outlineData
-  printModule.printTest(outlineData, global.sharedObj.documentPath)
+
+  let outlineText = ''
+
+  for (var i = 0; i < outlineData.length; i++) {
+    if (outlineData[i].type == 'section') {
+      if (i !== 0) {
+        outlineText += '\n'
+      }
+      outlineText += '/////////////////\n'
+      outlineText += '# ' + outlineData[i].text + '\n'
+      outlineText += '/////////////////\n'
+    } else if (outlineData[i].type == 'scene') {
+      outlineText += '\n' + outlineData[i].text + '\n'
+      if (outlineData[i].slugline) {
+        outlineText += '  ' + outlineData[i].slugline + '\n'
+      }
+      if (outlineData[i].description) {
+        for (var y = 0; y < outlineData[i].description.split('\n').length; y++) {
+          outlineText += '  ' + outlineData[i].description.split('\n')[y] + '\n'
+        }
+      }
+      if (outlineData[i].timing) {
+        outlineText += '  ' + outlineData[i].timing + '\n'
+      }
+      if (outlineData[i].posterImage) {
+        outlineText += '  ' + outlineData[i].posterImage + ' *\n'
+      }
+      if (outlineData[i].image.length > 0) {
+        for (var y = 0; y < outlineData[i].image.length; y++) {
+          outlineText += '  ' + outlineData[i].image[y] + '\n'
+        }
+      }
+    }
+  }
+
+  console.log()
+  fs.writeFileSync(prefs.outlineFile, outlineText)
+})
+
+/// menu pass through
+
+ipcMain.on('goNextScene', (event, arg) => {
+  mainWindow.webContents.send('goNextScene')
+})
+
+ipcMain.on('goPreviousScene', (event, arg) => {
+  mainWindow.webContents.send('goPreviousScene')
+})
+
+ipcMain.on('goNextSection', (event, arg) => {
+  mainWindow.webContents.send('goNextSection')
+})
+
+ipcMain.on('goPreviousSection', (event, arg) => {
+  mainWindow.webContents.send('goPreviousSection')
+})
+
+ipcMain.on('goBeginning', (event, arg) => {
+  mainWindow.webContents.send('goBeginning')
+})
+
+ipcMain.on('startSpeaking', (event, arg) => {
+  mainWindow.webContents.send('startSpeaking')
 })

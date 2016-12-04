@@ -1,0 +1,118 @@
+FROM VIDEO:
+
+Is a super simple outlining tool
+
+
+Outline Visualizer turns a text outline in a visual display of the story automatically. 
+
+You can simply write an outline in any text editor, and the visualizer shows you each scene in order, showing you the scene caption, descriptive text, and all of the other scenes in the form of a timeline with acccurate timing.
+
+This allows you outline a story as quickly as you can write text.
+
+Move quickly and change often.
+
+Image
+
+  [text editor to outline visualizer]
+
+Features
+  
+  speaks to you, will speak through the whole story 
+
+  shows keyframe images
+
+  storyboard worksheets
+    print them, draw, auto import back to the right place
+
+  export a treatment
+    send the story to other people to get their feedback
+
+  export a fountain screenplay
+    use this as the scaffold 
+
+  export a CSV file for project management 
+
+  print a large format version of the outline to hang on the wall
+
+  works with github
+
+
+Testimonial
+  
+  Matt Taylor
+
+
+
+-=-=-=-=-=-=-
+
+
+
+
+
+
+Outline Visualizer is an extremely easy way to turn an text outline into a story you can step through.
+
+You write your outline in simple text, using lines for each story idea, and tabs to include descriptions. You can also use sections.
+
+Let's make an outline!
+
+# ACT 1
+
+Man wakes up
+Man miserable with life
+Man goes to work
+Coworkers play a joke on man, man sad
+Man assigned to work in group
+Man meets girl
+There is a connection
+Man happy going home
+Man happy coming to work
+Girl has been transferred off project
+
+# ACT 2
+
+Coworkers play joke on man again, man mad
+Man goes looking for girl
+
+Why?
+
+I'm trying to get a sense of how the story will feel as fast as possible
+
+keep iterating
+
+
+For the project we are working on, we go through and refine the synopeses for each scene as we iterate the story. We call it our outline. Other people might call it a treatment.
+
+what it is
+
+why? what's it good for?
+
+keep on iterating
+
+also supports images which is great for playing back your movie
+  
+
+dont have a wacom?
+  print a storyboard worksheet
+  draw your boards
+  take a picture with your phone
+  and import them back in automatically
+
+double click to open immage
+
+
+export script to fountain
+
+export numbers
+
+
+1. print worksheet. 2. draw. 3. take a pic. 4. import right in auto https://www.dropbox.com/s/3219rgzglufp29x/Screenshot%202016-09-01%2023.22.29.png?dl=0
+
+demo of writing an outline and it updating
+
+so after you're done you get all of this:
+
+  a story that talks to you and animates
+  a pitch tool
+  a big poster you can hang on your wall
+  

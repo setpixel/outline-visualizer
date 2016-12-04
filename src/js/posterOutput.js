@@ -5,12 +5,15 @@
 
 */
 
+const moment = require('moment')
 
 const fs = require('fs')
 const {app} = require('electron')
 const pdfDocument = require('pdfkit')
+let sizeOf = require('image-size')
+let stats = require('./stats')
 
-var documentSize = [2*12*72,4*12*72]
+let documentSize = [2*12*72,4*12*72]
 //var documentSize = [8.5*72,11*72]
 var fontData
 var imageData
@@ -18,22 +21,11 @@ var imageAspectRatio
 var currentTime
 var currentSection
 
-let oldTest = function() {
-  doc = new pdfDocument
-  console.log(doc)
-  doc.pipe(fs.createWriteStream('output.pdf'))
-  doc.addPage()
-   .fontSize(25)
-   .text('Here is some vector graphics...', 100, 100)
-  doc.scale(0.6)
-   .translate(470, -380)
-   .path('M 250,75 L 323,301 131,161 369,161 177,301 z')
-   .fill('red', 'even-odd')
-   .restore()
-  doc.end()
-}
+let printTest = function(outlineData, path, filename) {
 
-let printTest = function(outlineData, path) {
+  // generate stats
+  stats.generateStats(outlineData)
+
   // size
   var margin = [22, 22, 22, 40]
   currentTime = 0
@@ -46,7 +38,7 @@ let printTest = function(outlineData, path) {
   doc.registerFont('regular', __dirname + '/./../fonts/proximanova/ProximaNova-Reg.ttf')
   doc.registerFont('bold', __dirname + '/./../fonts/proximanova/ProximaNova-Bold.ttf')
 
-  doc.pipe(fs.createWriteStream('output.pdf'))
+  doc.pipe(fs.createWriteStream(filename))
 
   // get sizes on all nodes
   var nodeHeights = [];
@@ -75,7 +67,6 @@ let printTest = function(outlineData, path) {
 
   flow(doc, outlineData, path, nodeHeights, scale, margin, true);
 
-  // drawTags(doc, scale, margin);
   drawTimeline(doc, outlineData, scale, margin);
   drawFooter(doc, scale, margin)
 
@@ -93,16 +84,16 @@ var renderNode = function(doc, node, path, x, y, scale, draw, sceneCount, beatCo
       if (draw) {
         doc.text(text, x, y, {width: 140*scale, lineBreak: false, ellipsis: true, height: (6*scale) })
         var tWidth = (doc.widthOfString(text, {width: 140*scale, lineBreak: false, ellipsis: true, height: (6*scale) }))
-        // if (stats.getStats().sectionStats[currentSection][0] > 0) {
-        //   doc.font('thin');
-        //   var text2 = stats.getStats().sectionStats[currentSection][0] + " SCENES / ";
-        //   if (stats.getStats().sectionStats[currentSection][1] > 0) {
-        //     text2 += Math.round(stats.getStats().sectionStats[currentSection][1]/60) + " MINS";
-        //   } else {
-        //     text2 += "•";
-        //   }
-        //   doc.text(text2, x + tWidth + (2.5*scale), y, {width: 140*scale, lineBreak: false, ellipsis: true, height: (6*scale) })
-        // }
+        if (stats.getStats().sectionStats[currentSection][0] > 0) {
+          doc.font('thin');
+          var text2 = stats.getStats().sectionStats[currentSection][0] + " SCENES / ";
+          if (stats.getStats().sectionStats[currentSection][1] > 0) {
+            text2 += Math.round(stats.getStats().sectionStats[currentSection][1]/60) + " MINS";
+          } else {
+            text2 += "•";
+          }
+          doc.text(text2, x + tWidth + (2.5*scale), y, {width: 140*scale, lineBreak: false, ellipsis: true, height: (6*scale) })
+        }
         currentSection++;
       }
       height += doc.heightOfString(text, {width: 140*scale, lineBreak: false, ellipsis: true, height: (6*scale) });
@@ -113,7 +104,7 @@ var renderNode = function(doc, node, path, x, y, scale, draw, sceneCount, beatCo
       doc.fontSize(4*scale);
       if (node.slugline) {
         if (draw && node.slugline) {
-          doc.text(node.slugline.toUpperCase(), x, height, {width: 100*scale});
+          doc.text(node.slugline.toUpperCase(), x, height, {width: 100*scale, height: 2*scale});
         }
         height += doc.heightOfString("ASDAD", {width: 100*scale});
         height -= (1.5*scale);
@@ -171,8 +162,11 @@ var renderNode = function(doc, node, path, x, y, scale, draw, sceneCount, beatCo
       }
 
       if (draw) {
-        currentTime += Number(node.timing);
-        //console.log(currentTime);
+        if (node.timing) {
+          currentTime += Number(node.timing)
+        } else {
+          currentTime += 90
+        }
       }
       var text = node.text;
       doc.font('bold');
@@ -182,13 +176,37 @@ var renderNode = function(doc, node, path, x, y, scale, draw, sceneCount, beatCo
       }
       height += doc.heightOfString(text, {width: 100*scale, lineGap: -2*scale});
 
-      if (node.posterImage) {
+      if (node.posterImage && fs.existsSync(path + "/" + node.posterImage)) {
         height += (4.5*scale);
         var imgw = 100;
-        //var imgh = 100 / imageAspectRatio[node.imageURL];          
-        var imgh = 100 / 2;          
+        
+        let dimensions = sizeOf(path + "/" + node.posterImage)
+
+
+
+        console.log(dimensions.width/dimensions.height)
+
+        var imgh = imgw / (dimensions.width/dimensions.height)          
         if (draw) {
           doc.image(path + "/" + node.posterImage, x, height, {width: (imgw*scale), height: (imgh * scale)})        
+          doc.lineWidth(0.15*scale).undash();
+          doc.rect(x, height, (imgw*scale), (imgh * scale))
+          doc.stroke()
+        }
+        height += (imgh * scale) + (2*scale);
+      } else if (node.image.length > 0 && fs.existsSync(path + "/" + node.image[0])) {
+        height += (4.5*scale);
+        var imgw = 100;
+        
+        let dimensions = sizeOf(path + "/" + node.image[0])
+
+
+
+        console.log(dimensions.width/dimensions.height)
+
+        var imgh = imgw / (dimensions.width/dimensions.height)          
+        if (draw) {
+          doc.image(path + "/" + node.image[0], x, height, {width: (imgw*scale), height: (imgh * scale)})        
           doc.lineWidth(0.15*scale).undash();
           doc.rect(x, height, (imgw*scale), (imgh * scale))
           doc.stroke()
@@ -454,8 +472,8 @@ var drawFooter = function(doc, scale, margin) {
   doc.fontSize(12*scale);
   doc.text(text, xCursor, yCursor, {width: 200*scale})
   yCursor += (12*scale);
-  //var text = "DRAFT: " + moment().format('MMMM Do, YYYY').toUpperCase();
-  var text = "DRAFT: TODAY";
+  var text = "DRAFT: " + moment().format('MMMM Do, YYYY').toUpperCase();
+  //var text = "DRAFT: TODAY";
   doc.font('regular');
   doc.fontSize(7*scale);
   doc.text(text, xCursor, yCursor, {width: 200*scale})
@@ -487,36 +505,33 @@ var drawFooter = function(doc, scale, margin) {
     .lineTo(xCursor+(150*scale), yCursor).stroke()
   yCursor += (6*scale);
 
-  // savedYCusor = yCursor;
-  // doc.font('regular');
-  // doc.fontSize(4*scale);
-  // doc.text("SCENES:", xCursor, yCursor, {width: 20*scale, align: 'right'})
-  // doc.text(stats.getStats().totalScenes, xCursor+(2*scale)+(20*scale), yCursor, {width: 20*scale, align: 'left'})
-  // yCursor += (5*scale);
-  // doc.text("BEATS:", xCursor, yCursor, {width: 20*scale, align: 'right'})
-  // doc.text(stats.getStats().totalBeats, xCursor+(2*scale)+(20*scale), yCursor, {width: 20*scale, align: 'left'})
-  // yCursor += (5*scale);
-  // doc.text("NODES:", xCursor, yCursor, {width: 20*scale, align: 'right'})
-  // doc.text(stats.getStats().totalNodes, xCursor+(2*scale)+(20*scale), yCursor, {width: 20*scale, align: 'left'})
-  // yCursor += (5*scale);
+  savedYCusor = yCursor;
+  doc.font('regular');
+  doc.fontSize(4*scale);
+  doc.text("SCENES:", xCursor, yCursor, {width: 20*scale, align: 'right'})
+  doc.text(stats.getStats().totalScenes, xCursor+(2*scale)+(20*scale), yCursor, {width: 20*scale, align: 'left'})
+  yCursor += (5*scale);
+  doc.text("BEATS:", xCursor, yCursor, {width: 20*scale, align: 'right'})
+  doc.text(stats.getStats().totalBeats, xCursor+(2*scale)+(20*scale), yCursor, {width: 20*scale, align: 'left'})
+  yCursor += (5*scale);
+  doc.text("WORDS:", xCursor, yCursor, {width: 20*scale, align: 'right'})
+  doc.text(stats.getStats().totalWords, xCursor+(2*scale)+(20*scale), yCursor, {width: 20*scale, align: 'left'})
+  yCursor += (5*scale);
 
-  // yCursor = savedYCusor;
-  // doc.text("CHARACTERS:", xCursor+(40*scale), yCursor, {width: 30*scale, align: 'right'})
-  // doc.text(stats.getStats().totalCharacters, xCursor+(40*scale)+(2*scale)+(30*scale), yCursor, {width: 30*scale, align: 'left'})
-  // yCursor += (5*scale);
-  // doc.text("LOCATIONS:", xCursor+(40*scale), yCursor, {width: 30*scale, align: 'right'})
-  // doc.text(stats.getStats().totalLocations, xCursor+(40*scale)+(2*scale)+(30*scale), yCursor, {width: 30*scale, align: 'left'})
-  // yCursor += (5*scale);
-  // doc.text("TAGS:", xCursor+(40*scale), yCursor, {width: 30*scale, align: 'right'})
-  // doc.text(stats.getStats().totalTags, xCursor+(40*scale)+(2*scale)+(30*scale), yCursor, {width: 30*scale, align: 'left'})
-  // yCursor += (5*scale);
+  yCursor = savedYCusor;
+  doc.text("CHARACTERS:", xCursor+(40*scale), yCursor, {width: 30*scale, align: 'right'})
+  doc.text(stats.getStats().totalCharacters, xCursor+(40*scale)+(2*scale)+(30*scale), yCursor, {width: 30*scale, align: 'left'})
+  yCursor += (5*scale);
+  doc.text("LOCATIONS:", xCursor+(40*scale), yCursor, {width: 30*scale, align: 'right'})
+  doc.text(stats.getStats().totalLocations, xCursor+(40*scale)+(2*scale)+(30*scale), yCursor, {width: 30*scale, align: 'left'})
+  yCursor += (5*scale);
+  doc.text("MINS TO READ:", xCursor+(40*scale), yCursor, {width: 30*scale, align: 'right'})
+  doc.text(Math.floor(stats.getStats().totalWords/130), xCursor+(40*scale)+(2*scale)+(30*scale), yCursor, {width: 30*scale, align: 'left'})
+  yCursor += (5*scale);
 
-  // yCursor = savedYCusor;
-  // doc.text("DURATION: " + msToTime(stats.getStats().totalTime*1000), xCursor+(95*scale), yCursor, {width: 30*scale, align: 'left'})
+  yCursor = savedYCusor;
+  doc.text("DURATION: " + msToTime(stats.getStats().totalTime*1000), xCursor+(95*scale), yCursor, {width: 30*scale, align: 'left'})
 };
-
-
-
 
 var sToMmss = function(totalSeconds) {
   var minutes = Math.floor((totalSeconds) / 60);
@@ -544,8 +559,6 @@ var msToTime = function(s) {
     return mins + ':' + addZ(secs); //+ '.' + ms.toString().substring(0,1);
   }
 }
-
-
 
 let printModule = {
   printTest: printTest

@@ -19,6 +19,7 @@ TODO:
 
 var remote = nodeRequire('electron').remote 
 var ipc = nodeRequire('electron').ipcRenderer
+const {shell} = nodeRequire('electron')
 
 var currentNode = 0
 var playbackMode = false
@@ -33,6 +34,15 @@ var colorList = ["6dcff6", "f69679", "00bff3", "f26c4f", "fff799", "c4df9b", "f4
 $(document).ready(function() {
   renderTimeline()
   advanceFrame(0)
+
+  $('#posterimage').on( "dblclick", function(e) {
+    let file = e.currentTarget.currentSrc
+    if (file.indexOf('file://') == 0) {
+      file = file.substr(7)
+    }
+    shell.showItemInFolder(file)
+  })
+
 });
 
 var renderTimeline = function() {
@@ -127,6 +137,8 @@ var advanceFrame = function(direction) {
     currentNode = Math.max(currentNode + direction,1);
   }
 
+  remote.getGlobal('sharedObj')['currentNode'] = currentNode
+
   var sceneCount = 0;
   var currentScene = 0;
   var currentTime = 0;
@@ -169,12 +181,11 @@ var advanceFrame = function(direction) {
   if (remote.getGlobal('sharedObj').outlineData[currentNode].image.length > 0) {
     currentImage = 0
     if (playbackMode) {
-      imageInterval = (remote.getGlobal('sharedObj').outlineData[currentNode].description.length*72+1300)/remote.getGlobal('sharedObj').outlineData[currentNode].image.length
+      imageInterval = Math.max(remote.getGlobal('sharedObj').outlineData[currentNode].description.length*69+600,2500)/remote.getGlobal('sharedObj').outlineData[currentNode].image.length
       imageTimer = setTimeout(advanceImage, imageInterval)
     }
     $("#posterimage").attr("src",remote.getGlobal('sharedObj').documentPath + "/" + remote.getGlobal('sharedObj').outlineData[currentNode].image[0]);
     $('#posterimage').show()
-    console.log('has images!!!')
   } else {
     $('#posterimage').hide()
   }
@@ -209,9 +220,12 @@ var advanceImage = function() {
   clearTimeout(imageTimer)
   currentImage++
   var imageCount = remote.getGlobal('sharedObj').outlineData[currentNode].image.length
-  console.log(imageCount)
+
   $("#posterimage").attr("src",remote.getGlobal('sharedObj').documentPath + "/" + remote.getGlobal('sharedObj').outlineData[currentNode].image[currentImage % imageCount]);
-  imageTimer = setTimeout(advanceImage, imageInterval)
+ 
+  if (currentImage < (imageCount)) {
+    imageTimer = setTimeout(advanceImage, imageInterval)
+  }
 }
 
 var goToImage = function(direction) {
@@ -222,53 +236,30 @@ var goToImage = function(direction) {
 }
 
 window.onkeydown = function(key){
-   console.log(key);
+  // console.log(key);
   switch (key.keyCode) {
     // back arrow
     case 37:
-      playbackMode = false;
-      clearTimeout(updateTimer)
-      clearTimeout(frameTimer)
-      speechSynthesis.cancel()
-      advanceFrame(-1);
-
-      // clearTimeout(frameTimer);
       // playbackMode = false;
-      // if (key.metaKey || key.ctrlKey) {
-      //   advanceScene(-1);
-      // } else {
-      //   advanceFrame(-1);
-      // }
+      // clearTimeout(updateTimer)
+      // clearTimeout(frameTimer)
+      // speechSynthesis.cancel()
+      // advanceFrame(-1);
       break;
     // front arrow
     case 39:
-      playbackMode = false;
-      clearTimeout(updateTimer)
-      clearTimeout(frameTimer)
-      speechSynthesis.cancel()
-      advanceFrame(1);
-      // clearTimeout(frameTimer);
       // playbackMode = false;
-      // if (key.metaKey || key.ctrlKey) {
-      //   advanceScene(1);
-      // } else {
-      //   advanceFrame(1);
-      // }
+      // clearTimeout(updateTimer)
+      // clearTimeout(frameTimer)
+      // speechSynthesis.cancel()
+      // advanceFrame(1);
       break;
-  //   // r key
-  //   case 82:
-  //     if (key.metaKey || key.ctrlKey){
-  //       recordScene();
-  //     }
-  //     break;
     case 83:
-      toggleSpeechPlayback();
       break;
     // space key
     case 32: 
       togglePlayback();
       break;
-  //   case 48:
     case 49:
       playbackType = 0
       break;
@@ -483,10 +474,9 @@ var reloadOutline = function() {
 }
 
 ipc.on('reload', function(event, arg){
-  console.log('reloaded outline');  // prints "ping"
-  reloadOutline();
+  console.log('reloaded outline')
+  reloadOutline()
 });
-
 
 document.ondragover = document.ondrop = function(ev) {
   ev.preventDefault()
@@ -521,3 +511,56 @@ function msToTime(s) {
     return mins + ':' + addZ(secs); //+ '.' + ms.toString().substring(0,1);
   }
 };
+
+var stopSpeaking = function() {
+  playbackMode = false;
+  clearTimeout(updateTimer)
+  clearTimeout(frameTimer)
+  speechSynthesis.cancel()
+}
+
+// from external commands
+
+ipc.on('goNextScene', function(event, arg){
+  stopSpeaking()
+  advanceFrame(1)
+});
+
+ipc.on('goPreviousScene', (event, arg) => {
+  stopSpeaking()
+  advanceFrame(-1);
+})
+
+ipc.on('goNextSection', (event, arg) => {
+  stopSpeaking()
+  var outlineData = remote.getGlobal('sharedObj').outlineData;
+  for (var i = currentNode; i < outlineData.length; i++) {
+    if (outlineData[i].type == 'section') {
+      currentNode = i
+      break
+    }
+  }
+  advanceFrame(1);  
+})
+
+ipc.on('goPreviousSection', (event, arg) => {
+  stopSpeaking()
+  var outlineData = remote.getGlobal('sharedObj').outlineData;
+  for (var i = currentNode-2; i >= 0 ; i--) {
+    if (outlineData[i].type == 'section') {
+      currentNode = i+1
+      break
+    }
+  }
+  advanceFrame(0);  
+})
+
+ipc.on('goBeginning', (event, arg) => {
+  stopSpeaking()
+  currentNode = 0;
+  advanceFrame(0);
+})
+
+ipc.on('startSpeaking', (event, arg) => {
+  toggleSpeechPlayback();
+})

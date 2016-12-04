@@ -34,6 +34,12 @@ const template = [
         type: 'separator'
       },
       {
+        label: 'Export Treatment...',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('exportTreatment')
+        }
+      },
+      {
         label: 'Export to Fountain Screenplay...',
         click ( item, focusedWindow, event) {
           ipcRenderer.send('exportFountain')
@@ -60,37 +66,83 @@ const template = [
           ipcRenderer.send('exportPoster')
         }
       },
+      {
+        type: 'separator'
+      },
+      {
+        accelerator: 'CmdOrCtrl+P',
+        label: 'Print current scene worksheet...',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('printWorksheet')
+        }
+      },
+      {
+        accelerator: 'CmdOrCtrl+I',
+        label: 'Import worksheets...',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('importWorksheets')
+        }
+      },
+    ]
+  },
+  {
+    label: 'Navigation',
+    submenu: [
+      {
+        accelerator: 'Home',
+        label: 'Go to the beginning',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('goBeginning')
+        }
+      },
+      {
+        label: 'Previous section',
+        accelerator: 'CmdOrCtrl+Left',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('goPreviousSection')
+        }
+      },
+      {
+        label: 'Previous scene',
+        accelerator: 'Left',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('goPreviousScene')
+        }
+      },
+      {
+        label: 'Next scene',
+        accelerator: 'Right',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('goNextScene')
+        }
+      },
+      {
+        label: 'Next section',
+        accelerator: 'CmdOrCtrl+Right',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('goNextSection')
+        }
+      },
+      {
+        type: 'separator'
+      },
+      {
+        accelerator: 'CmdOrCtrl+S',
+        label: 'Start speaking',
+        click ( item, focusedWindow, event) {
+          ipcRenderer.send('startSpeaking')
+        }
+      }
     ]
   },
   {
     label: 'Edit',
     submenu: [
       {
-        role: 'undo'
-      },
-      {
-        role: 'redo'
-      },
-      {
-        type: 'separator'
-      },
-      {
-        role: 'cut'
-      },
-      {
         role: 'copy'
       },
       {
         role: 'paste'
-      },
-      {
-        role: 'pasteandmatchstyle'
-      },
-      {
-        role: 'delete'
-      },
-      {
-        role: 'selectall'
       }
     ]
   },
@@ -115,6 +167,7 @@ const template = [
         type: 'separator'
       },
       {
+        accelerator: 'CmdOrCtrl+F',
         role: 'togglefullscreen'
       }
     ]
@@ -194,7 +247,7 @@ if (process.platform === 'darwin') {
   //   }
   // )
   // Window menu.
-  template[4].submenu = [
+  template[5].submenu = [
     {
       label: 'Close',
       accelerator: 'CmdOrCtrl+W',

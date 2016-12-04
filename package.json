@@ -28,7 +28,13 @@
     "electron-prebuilt": "^1.2.0"
   },
   "dependencies": {
+    "electron-canvas-to-buffer": "^2.0.0",
+    "image-size": "^0.5.0",
     "jquery": "^3.1.0",
-    "pdfkit": "^0.7.2"
+    "jsfeat": "0.0.8",
+    "moment": "^2.14.1",
+    "pdfkit": "^0.7.2",
+    "qr-image": "^3.1.0",
+    "qrcode-reader": "^0.2.1"
   }
 }
